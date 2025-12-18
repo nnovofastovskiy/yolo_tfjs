@@ -41,7 +41,7 @@ export function preprocessImage(
 
 export async function processSegmentation(
     output: tf.Tensor | tf.Tensor[],
-    imgWidth: number,
+    // imgWidth: number,
     imgHeight: number,
     scale: number,
     padL: number,
