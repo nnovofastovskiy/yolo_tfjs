@@ -1,13 +1,36 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>yolo_tfjs</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOLO11 Сегментация дисков</title>
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <h1>🛞 Сегментация колесных дисков (YOLO11n-seg)</h1>
+
+      <div id="status" class="status">⏳ Загрузка модели...</div>
+
+      <div class="upload-section">
+        <input type="file" id="imageUpload" accept="image/*" disabled />
+        <div id="processing" class="processing" style="display: none;">
+          🔄 Обработка изображения...
+        </div>
+        <!-- ДОБАВЬТЕ ЭТО -->
+        <div id="inferenceTime" class="inference-time" style="display: none;"></div>
+      </div>
+
+      <div class="canvas-container">
+        <img id="sourceImage" style="display: none;" alt="source" />
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
