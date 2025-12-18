@@ -24,7 +24,7 @@ async function initModel(): Promise<void> {
   try {
     console.log('Загрузка модели YOLO11n-seg...');
     const t0 = performance.now();
-    model = await loadModel('/model/model.json');
+    model = await loadModel('./model/model.json');
     const t1 = performance.now();
 
     elements.status.textContent = `✅ Модель готова к работе (загружена за ${(t1 - t0).toFixed(0)}мс)`;
