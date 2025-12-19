@@ -98,6 +98,34 @@ canvas {
   color: #0d47a1;
 }
 
+.mode-selector {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  display: flex;
+  gap: 1.5rem;
+}
+
+.mode-selector label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.mode-selector label:hover {
+  color: #646cff;
+}
+
+.mode-selector input[type="radio"] {
+  margin-right: 0.5rem;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f0f0f0;
@@ -127,5 +155,13 @@ canvas {
     background-color: #1a2332;
     border-color: #42a5f5;
     color: #90caf9;
+  }
+
+  .mode-selector {
+    background-color: #2a2a2a;
+  }
+
+  .mode-selector label:hover {
+    color: #a0a0ff;
   }
 }

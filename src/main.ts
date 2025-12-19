@@ -1,5 +1,6 @@
 import './style.css';
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-webgl';
 import {
   loadModel,
   preprocessImage,
@@ -8,8 +9,14 @@ import {
 } from './utils/segmentation';
 import { LABELS, COLORS } from './utils/labels';
 
+// Установите WebGL бэкенд
+await tf.setBackend('webgl');
+await tf.ready();
+console.log('TensorFlow.js backend:', tf.getBackend());
+
 let model: tf.GraphModel | null = null;
 let isProcessing = false;
+let currentMode: 'detection' | 'segmentation' = 'detection'; // ДОБАВЛЕНО
 
 const elements = {
   status: document.getElementById('status') as HTMLDivElement,
@@ -17,7 +24,8 @@ const elements = {
   sourceImage: document.getElementById('sourceImage') as HTMLImageElement,
   canvas: document.getElementById('canvas') as HTMLCanvasElement,
   processing: document.getElementById('processing') as HTMLDivElement,
-  inferenceTime: document.getElementById('inferenceTime') as HTMLDivElement // ДОБАВЬТЕ ЭТО
+  inferenceTime: document.getElementById('inferenceTime') as HTMLDivElement,
+  modeRadios: document.querySelectorAll('input[name="mode"]') as NodeListOf<HTMLInputElement> // ДОБАВЛЕНО
 };
 
 async function initModel(): Promise<void> {
@@ -36,6 +44,18 @@ async function initModel(): Promise<void> {
     console.error('Ошибка загрузки модели:', error);
     elements.status.textContent = '❌ Ошибка загрузки модели';
     elements.status.classList.add('error');
+  }
+}
+
+// ДОБАВЛЕНО: Обработчик изменения режима
+function handleModeChange(event: Event): void {
+  const target = event.target as HTMLInputElement;
+  currentMode = target.value as 'detection' | 'segmentation';
+  console.log('Режим изменен на:', currentMode);
+
+  // Если изображение уже загружено, перерисовать
+  if (elements.sourceImage.src && !isProcessing) {
+    detectAndSegment(elements.sourceImage);
   }
 }
 
@@ -60,8 +80,11 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
 
   isProcessing = true;
   elements.processing.style.display = 'block';
-  elements.inferenceTime.style.display = 'none'; // ДОБАВЬТЕ ЭТО
+  elements.inferenceTime.style.display = 'none';
   elements.imageUpload.disabled = true;
+
+  // ДОБАВЛЕНО: Отключаем переключатели во время обработки
+  elements.modeRadios.forEach(radio => radio.disabled = true);
 
   const ctx = elements.canvas.getContext('2d');
   if (!ctx) return;
@@ -78,34 +101,51 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
     const preprocessEnd = performance.now();
 
     const inferenceStart = performance.now();
-    const predictions = await model.executeAsync(tensor);
+    const predictions = model.execute(tensor) as tf.Tensor | tf.Tensor[];
     const inferenceEnd = performance.now();
 
     const postprocessStart = performance.now();
+    // ИЗМЕНЕНО: Передаем режим в функцию обработки
     const results = await processSegmentation(
       predictions,
       img.width,
       img.height,
       scale,
       padL,
-      padT
+      padT,
+      0.4,
+      currentMode === 'segmentation' // enableMasks
     );
     const postprocessEnd = performance.now();
 
     const drawStart = performance.now();
-    drawDetections(ctx, results, LABELS, COLORS, img.width, img.height, scale, padL, padT);
+    drawDetections(
+      ctx,
+      results,
+      LABELS,
+      COLORS,
+      img.width,
+      img.height,
+      scale,
+      padL,
+      padT,
+      currentMode === 'segmentation' // drawMasks
+    );
     const drawEnd = performance.now();
 
     const totalEnd = performance.now();
 
-    // ДОБАВЬТЕ ЭТО - отображение времени
     const preprocessTime = preprocessEnd - preprocessStart;
     const inferenceTime = inferenceEnd - inferenceStart;
     const postprocessTime = postprocessEnd - postprocessStart;
     const drawTime = drawEnd - drawStart;
     const totalTime = totalEnd - totalStart;
 
+    const modeEmoji = currentMode === 'segmentation' ? '🎨' : '🎯';
+    const modeName = currentMode === 'segmentation' ? 'Сегментация' : 'Детектирование';
+
     elements.inferenceTime.innerHTML = `
+      ${modeEmoji} <strong>Режим: ${modeName}</strong><br>
       ⚡ <strong>Время обработки:</strong><br>
       • Предобработка: ${preprocessTime.toFixed(1)}мс<br>
       • Инференс: ${inferenceTime.toFixed(1)}мс<br>
@@ -115,7 +155,7 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
     `;
     elements.inferenceTime.style.display = 'block';
 
-    console.log(`⚡ Детальная статистика:
+    console.log(`⚡ Режим: ${modeName}
       - Предобработка: ${preprocessTime.toFixed(1)}мс
       - Инференс: ${inferenceTime.toFixed(1)}мс
       - Постобработка: ${postprocessTime.toFixed(1)}мс
@@ -131,9 +171,14 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
     isProcessing = false;
     elements.processing.style.display = 'none';
     elements.imageUpload.disabled = false;
+    // ДОБАВЛЕНО: Включаем переключатели обратно
+    elements.modeRadios.forEach(radio => radio.disabled = false);
   }
 }
 
 // Инициализация
 elements.imageUpload.addEventListener('change', handleImageUpload);
+elements.modeRadios.forEach(radio => {
+  radio.addEventListener('change', handleModeChange);
+});
 initModel();

@@ -16,11 +16,32 @@
       <div id="status" class="status">⏳ Загрузка модели...</div>
 
       <div class="upload-section">
+        <!-- ДОБАВЬТЕ ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА -->
+        <div class="mode-selector">
+          <label>
+            <input type="radio" name="mode" value="detection" checked>
+            🎯 Детектирование (только боксы)
+          </label>
+          <label>
+            <input type="radio" name="mode" value="segmentation">
+            🎨 Сегментация (боксы + маски)
+          </label>
+          <label>
+            <input type="checkbox" id="showBoxes" checked>
+            📦 Показать рамки
+          </label>
+          <label>
+            <input type="number" id="confidenceThreshold" value="0.5" size="4">
+            🎯 Порог уверенности (0.0 - 1.0)
+          </label>
+        </div>
+
         <input type="file" id="imageUpload" accept="image/*" disabled />
+
         <div id="processing" class="processing" style="display: none;">
           🔄 Обработка изображения...
         </div>
-        <!-- ДОБАВЬТЕ ЭТО -->
+
         <div id="inferenceTime" class="inference-time" style="display: none;"></div>
       </div>
 

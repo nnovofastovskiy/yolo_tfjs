@@ -46,7 +46,8 @@ export async function processSegmentation(
     scale: number,
     padL: number,
     padT: number,
-    threshold: number = 0.5
+    threshold: number = 0.5,
+    enableMasks: boolean = true // ДОБАВЛЕНО
 ): Promise<Detection[]> {
     const boxesOut = Array.isArray(output) ? output[0] : output;
     const maskProtos = Array.isArray(output) && output.length > 1 ? output[1] : null;
@@ -103,15 +104,63 @@ export async function processSegmentation(
 
     console.log(`Filtered detections before NMS: ${results.length}`);
 
-    // ПРИМЕНЯЕМ NMS
-    const nmsResults = applyNMS(results, 0.45); // IoU порог 0.45
+    const nmsResults = applyNMS(results, 0.45);
 
-    // Если есть mask protos, декодируем маски
-    if (maskProtos && nmsResults.length > 0) {
+    // ИЗМЕНЕНО: Декодируем маски только если включен режим сегментации
+    if (enableMasks && maskProtos && nmsResults.length > 0) {
         await decodeMasks(nmsResults, maskProtos, scale, padL, padT);
     }
 
     return nmsResults;
+}
+
+export function drawDetections(
+    ctx: CanvasRenderingContext2D,
+    detections: Detection[],
+    labels: string[],
+    colors: string[],
+    imgWidth: number,
+    imgHeight: number,
+    scale: number,
+    padL: number,
+    padT: number,
+    drawMasks: boolean = true
+): void {
+    ctx.lineWidth = 3;
+    ctx.font = 'bold 16px Arial';
+
+    detections.forEach((det) => {
+        const color = colors[det.class % colors.length];
+
+        // Отрисовка маски
+        if (drawMasks && det.mask) {
+            drawSegmentationMask(ctx, det, color, imgWidth, imgHeight, scale, padL, padT);
+        }
+
+        // ИЗМЕНЕНО: Отрисовка овала вместо прямоугольника
+        const centerX = det.box.x + det.box.width / 2;
+        const centerY = det.box.y + det.box.height / 2;
+        const radiusX = det.box.width / 2;
+        const radiusY = det.box.height / 2;
+
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Отрисовка метки
+        const label = `${labels[det.class]}: ${(det.score * 100).toFixed(1)}%`;
+        const textWidth = ctx.measureText(label).width;
+
+        // Метка над верхней точкой овала
+        const labelX = centerX - textWidth / 2;
+        const labelY = det.box.y - 5;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(labelX - 5, labelY - 20, textWidth + 10, 25);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, labelX, labelY - 2);
+    });
 }
 
 // Функция для вычисления IoU (Intersection over Union)
@@ -219,41 +268,6 @@ async function decodeMasks(
     });
 }
 
-export function drawDetections(
-    ctx: CanvasRenderingContext2D,
-    detections: Detection[],
-    labels: string[],
-    colors: string[],
-    imgWidth: number,
-    imgHeight: number,
-    scale: number,
-    padL: number,
-    padT: number
-): void {
-    ctx.lineWidth = 3;
-    ctx.font = 'bold 16px Arial';
-
-    detections.forEach((det) => {
-        const color = colors[det.class % colors.length];
-
-        // Отрисовка маски
-        if (det.mask) {
-            drawSegmentationMask(ctx, det, color, imgWidth, imgHeight, scale, padL, padT);
-        }
-
-        // Отрисовка bbox
-        ctx.strokeStyle = color;
-        ctx.strokeRect(det.box.x, det.box.y, det.box.width, det.box.height);
-
-        // Отрисовка метки
-        const label = `${labels[det.class]}: ${(det.score * 100).toFixed(1)}%`;
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillStyle = color;
-        ctx.fillRect(det.box.x, det.box.y - 25, textWidth + 10, 25);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(label, det.box.x + 5, det.box.y - 7);
-    });
-}
 
 function drawSegmentationMask(
     ctx: CanvasRenderingContext2D,
