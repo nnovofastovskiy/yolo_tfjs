@@ -124,7 +124,8 @@ export function drawDetections(
     scale: number,
     padL: number,
     padT: number,
-    drawMasks: boolean = true
+    drawMasks: boolean = true,
+    showBoxes: boolean = true // ДОБАВЛЕНО
 ): void {
     ctx.lineWidth = 3;
     ctx.font = 'bold 16px Arial';
@@ -137,29 +138,29 @@ export function drawDetections(
             drawSegmentationMask(ctx, det, color, imgWidth, imgHeight, scale, padL, padT);
         }
 
-        // ИЗМЕНЕНО: Отрисовка овала вместо прямоугольника
-        const centerX = det.box.x + det.box.width / 2;
-        const centerY = det.box.y + det.box.height / 2;
-        const radiusX = det.box.width / 2;
-        const radiusY = det.box.height / 2;
+        // ИЗМЕНЕНО: Отрисовка рамок только если включено
+        if (showBoxes) {
+            ctx.strokeStyle = color;
 
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-        ctx.stroke();
+            // Рисуем овал
+            const centerX = det.box.x + det.box.width / 2;
+            const centerY = det.box.y + det.box.height / 2;
+            const radiusX = det.box.width / 2;
+            const radiusY = det.box.height / 2;
 
-        // Отрисовка метки
-        const label = `${labels[det.class]}: ${(det.score * 100).toFixed(1)}%`;
-        const textWidth = ctx.measureText(label).width;
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+            ctx.stroke();
 
-        // Метка над верхней точкой овала
-        const labelX = centerX - textWidth / 2;
-        const labelY = det.box.y - 5;
 
-        ctx.fillStyle = color;
-        ctx.fillRect(labelX - 5, labelY - 20, textWidth + 10, 25);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(label, labelX, labelY - 2);
+            // Отрисовка метки
+            const label = `${labels[det.class]}: ${(det.score * 100).toFixed(1)}%`;
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = color;
+            ctx.fillRect(det.box.x, det.box.y - 25, textWidth + 10, 25);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, det.box.x + 5, det.box.y - 7);
+        }
     });
 }
 

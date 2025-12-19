@@ -16,7 +16,8 @@ console.log('TensorFlow.js backend:', tf.getBackend());
 
 let model: tf.GraphModel | null = null;
 let isProcessing = false;
-let currentMode: 'detection' | 'segmentation' = 'detection'; // ДОБАВЛЕНО
+let currentMode: 'detection' | 'segmentation' = 'detection';
+let currentThreshold = 0.5; // значение по умолчанию
 
 const elements = {
   status: document.getElementById('status') as HTMLDivElement,
@@ -25,7 +26,10 @@ const elements = {
   canvas: document.getElementById('canvas') as HTMLCanvasElement,
   processing: document.getElementById('processing') as HTMLDivElement,
   inferenceTime: document.getElementById('inferenceTime') as HTMLDivElement,
-  modeRadios: document.querySelectorAll('input[name="mode"]') as NodeListOf<HTMLInputElement> // ДОБАВЛЕНО
+  modeRadios: document.querySelectorAll('input[name="mode"]') as NodeListOf<HTMLInputElement>,
+  showBoxes: document.getElementById('showBoxes') as HTMLInputElement,
+  thresholdRange: document.getElementById('thresholdRange') as HTMLInputElement,
+  thresholdValue: document.getElementById('thresholdValue') as HTMLSpanElement
 };
 
 async function initModel(): Promise<void> {
@@ -75,6 +79,23 @@ async function handleImageUpload(event: Event): Promise<void> {
   reader.readAsDataURL(file);
 }
 
+function handleDisplayOptionChange(): void {
+  if (elements.sourceImage.src && !isProcessing) {
+    detectAndSegment(elements.sourceImage);
+  }
+}
+
+function handleThresholdChange(): void {
+  const val = parseFloat(elements.thresholdRange.value);
+  currentThreshold = val;
+  elements.thresholdValue.textContent = val.toFixed(2);
+
+  if (elements.sourceImage.src && !isProcessing) {
+    detectAndSegment(elements.sourceImage);
+  }
+}
+
+
 async function detectAndSegment(img: HTMLImageElement): Promise<void> {
   if (!model || isProcessing) return;
 
@@ -83,8 +104,9 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
   elements.inferenceTime.style.display = 'none';
   elements.imageUpload.disabled = true;
 
-  // ДОБАВЛЕНО: Отключаем переключатели во время обработки
   elements.modeRadios.forEach(radio => radio.disabled = true);
+  // ДОБАВЛЕНО: Отключаем чекбоксы во время обработки
+  elements.showBoxes.disabled = true;
 
   const ctx = elements.canvas.getContext('2d');
   if (!ctx) return;
@@ -105,7 +127,6 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
     const inferenceEnd = performance.now();
 
     const postprocessStart = performance.now();
-    // ИЗМЕНЕНО: Передаем режим в функцию обработки
     const results = await processSegmentation(
       predictions,
       img.width,
@@ -113,8 +134,8 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
       scale,
       padL,
       padT,
-      0.4,
-      currentMode === 'segmentation' // enableMasks
+      currentThreshold,
+      currentMode === 'segmentation'
     );
     const postprocessEnd = performance.now();
 
@@ -129,7 +150,8 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
       scale,
       padL,
       padT,
-      currentMode === 'segmentation' // drawMasks
+      currentMode === 'segmentation',
+      elements.showBoxes.checked // ДОБАВЛЕНО
     );
     const drawEnd = performance.now();
 
@@ -171,14 +193,18 @@ async function detectAndSegment(img: HTMLImageElement): Promise<void> {
     isProcessing = false;
     elements.processing.style.display = 'none';
     elements.imageUpload.disabled = false;
-    // ДОБАВЛЕНО: Включаем переключатели обратно
     elements.modeRadios.forEach(radio => radio.disabled = false);
+    // ДОБАВЛЕНО: Включаем чекбоксы обратно
+    elements.showBoxes.disabled = false;
   }
 }
-
 // Инициализация
 elements.imageUpload.addEventListener('change', handleImageUpload);
 elements.modeRadios.forEach(radio => {
   radio.addEventListener('change', handleModeChange);
 });
+elements.showBoxes.addEventListener('change', handleDisplayOptionChange);
+elements.thresholdRange.addEventListener('input', handleThresholdChange);
+
+
 initModel();

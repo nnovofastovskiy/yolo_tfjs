@@ -126,6 +126,21 @@ canvas {
   height: 18px;
 }
 
+.threshold-control {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.threshold-control label {
+  font-weight: 500;
+}
+
+.threshold-control input[type="range"] {
+  flex: 1;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f0f0f0;
